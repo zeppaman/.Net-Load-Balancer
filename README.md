@@ -51,5 +51,12 @@ After Balanging stage complete the computation of right url, proxy module will i
 Basing on rules, similar to filters, you can define some regular expression to alter content. In that way you can replace absolute urls with the proxy one, or change local url with cdn ones.
 
 
+# How to use
+This balancer can be used in theese ways:
+
+   1. **As binary:** using embedded or iis web hosted package, you can download it, configure changes files and run.
+   2. **As library:** downloading from nuget, you can create your own bundle where you can add feature or complicate logics.
+
+*What package is for me?* My suggestion is to start with binary pack then, if you'll need will be out of the standards, you will implement your custom rules to modules to add to the queue.
 
 
