@@ -12,4 +12,7 @@
   <ItemGroup>
     <Folder Include="Code\Classes\" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="conf\ApacheModRewrite.config" />
+  </ItemGroup>
 </Project>

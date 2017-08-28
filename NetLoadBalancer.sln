@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.10
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetLoadBalancer", "NetLoadBalancer\NetLoadBalancer.csproj", "{CF68F40C-F42C-432E-B336-67637C86272F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetLoadBalancer", "NetLoadBalancer\NetLoadBalancer.csproj", "{CF68F40C-F42C-432E-B336-67637C86272F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetLoadBalancer.Test", "NetLoadBalancer.Test\NetLoadBalancer.Test.csproj", "{0A67A673-764F-4736-A7A7-34054BAEBFA9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetLoadBalancer.Test", "NetLoadBalancer.Test\NetLoadBalancer.Test.csproj", "{0A67A673-764F-4736-A7A7-34054BAEBFA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetLoadBalancer.Node1", "NetLoadBalancer.Node1\NetLoadBalancer.Node1.csproj", "{F4002226-5A52-403F-BD69-29CCB003B054}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetLoadBalancer.Node2", "NetLoadBalancer.Node2\NetLoadBalancer.Node2.csproj", "{EB1D735F-0DC5-473A-BFF1-083F81E96F23}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{0A67A673-764F-4736-A7A7-34054BAEBFA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A67A673-764F-4736-A7A7-34054BAEBFA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A67A673-764F-4736-A7A7-34054BAEBFA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4002226-5A52-403F-BD69-29CCB003B054}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4002226-5A52-403F-BD69-29CCB003B054}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4002226-5A52-403F-BD69-29CCB003B054}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4002226-5A52-403F-BD69-29CCB003B054}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB1D735F-0DC5-473A-BFF1-083F81E96F23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB1D735F-0DC5-473A-BFF1-083F81E96F23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB1D735F-0DC5-473A-BFF1-083F81E96F23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB1D735F-0DC5-473A-BFF1-083F81E96F23}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

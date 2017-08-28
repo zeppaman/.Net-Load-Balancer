@@ -37,13 +37,20 @@ namespace NetLoadBalancer
             //Configure Log
             ConfigureLog(app, env, loggerFactory);
 
-            ConfigureCaching(app, env);
+            ConfigureInit(app, env);
+
+            //ConfigureCaching(app, env);
             //Configure Redirect
-            ConfigureRedirect(app, env);
+            //ConfigureRedirect(app, env);
 
             ConfigureProxy(app, env);
 
 
+        }
+
+        private void ConfigureInit(IApplicationBuilder app, IHostingEnvironment env)
+        {
+            app.UseInit();
         }
 
         private void ConfigureProxy(IApplicationBuilder app, IHostingEnvironment env)
@@ -58,8 +65,8 @@ namespace NetLoadBalancer
 
         private void ConfigureRedirect(IApplicationBuilder app, IHostingEnvironment env)
         {
-            using (StreamReader apacheModRewriteStreamReader = File.OpenText(".\\conf\\ApacheModRewrite.txt"))
-            using (StreamReader iisUrlRewriteStreamReader = File.OpenText(".\\conf\\IISUrlRewrite.xml"))
+            using (StreamReader apacheModRewriteStreamReader = File.OpenText(".\\conf\\ApacheModRewrite.config"))
+            using (StreamReader iisUrlRewriteStreamReader = File.OpenText(".\\conf\\IISUrlRewrite.config"))
             {
                 var options = new RewriteOptions()
                     .AddApacheModRewrite(apacheModRewriteStreamReader)
