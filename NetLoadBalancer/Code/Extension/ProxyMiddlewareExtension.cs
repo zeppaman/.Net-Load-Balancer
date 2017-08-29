@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using NetLoadBalancer.Code.Middleware;
+using NetLoadBalancer.Code.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +11,9 @@ namespace NetLoadBalancer.Code.Extension
     
         public static class ProxyMiddlewareExtension
         {
-            public static IApplicationBuilder UseProxyServer(this IApplicationBuilder builder)
+            public static IApplicationBuilder UseProxyServer(this IApplicationBuilder builder, ProxyOptions options)
             {
-                return builder.Use(next => new ProxyMiddleware(next).Invoke);
+                return builder.Use(next => new ProxyMiddleware(next, options).Invoke);
             }
         }
     

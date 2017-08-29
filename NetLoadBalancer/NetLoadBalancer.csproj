@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Code\Classes\" />
+    <Folder Include="Code\Enums\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="conf\ApacheModRewrite.config" />

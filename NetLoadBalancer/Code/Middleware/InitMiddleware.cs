@@ -14,7 +14,7 @@ namespace NetLoadBalancer.Code.Middleware
        
             private readonly RequestDelegate _next;
 
-            private ILogger<ProxyMiddleware> logger;
+            private ILogger<InitMiddleware> logger;
 
             public InitMiddleware(RequestDelegate next)
             {
@@ -24,9 +24,12 @@ namespace NetLoadBalancer.Code.Middleware
 
             public async Task Invoke(HttpContext context)
             {
-            context.Items["finalurl"] = "https://www.vecchievie.it";
+            context.Items["proxy-options"] = null;//default option will be used
 
-            await _next(context);
+            if (_next != null)
+                {
+                    await _next(context);
+                }
            }
 
            

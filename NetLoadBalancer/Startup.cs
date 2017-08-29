@@ -12,6 +12,10 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using Microsoft.AspNetCore.Rewrite;
 using NetLoadBalancer.Code.Extension;
+using Microsoft.AspNetCore.Http;
+using NetLoadBalancer.Code.Middleware;
+using Microsoft.Extensions.Options;
+using NetLoadBalancer.Code.Options;
 
 namespace NetLoadBalancer
 {
@@ -28,12 +32,15 @@ namespace NetLoadBalancer
         public void ConfigureServices(IServiceCollection services)
         {
            
-            services.AddResponseCaching();
+            //services.AddResponseCaching();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory  loggerFactory)
         {
+
+          
+
             //Configure Log
             ConfigureLog(app, env, loggerFactory);
 
@@ -43,7 +50,7 @@ namespace NetLoadBalancer
             //Configure Redirect
             //ConfigureRedirect(app, env);
 
-            ConfigureProxy(app, env);
+           ConfigureProxy(app, env);
 
 
         }
@@ -55,7 +62,12 @@ namespace NetLoadBalancer
 
         private void ConfigureProxy(IApplicationBuilder app, IHostingEnvironment env)
         {
-            app.UseProxyServer();
+            ProxyOptions options = new ProxyOptions();
+            options.Port = 80;
+            options.Scheme = "http";
+            options.SendChunked = false;
+
+            app.UseProxyServer(options);
         }
 
         private void ConfigureCaching(IApplicationBuilder app, IHostingEnvironment env)
@@ -78,12 +90,11 @@ namespace NetLoadBalancer
 
         private static void ConfigureLog(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            env.ConfigureNLog(".\\conf\\nlog.config");
-            //add NLog to ASP.NET Core
+           
             loggerFactory.AddNLog();
-
-            //add NLog.Web
             app.AddNLogWeb();
+            env.ConfigureNLog(".\\conf\\nlog.config");
+            
         }
     }
 }

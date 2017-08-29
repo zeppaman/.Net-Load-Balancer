@@ -1,163 +1,252 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NetLoadBalancer.Code.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
+using System.Net.WebSockets;
+using System.Threading;
 using System.Threading.Tasks;
-using NetLoadBalancer.Code.Extension;
 
 namespace NetLoadBalancer.Code.Middleware
 {
+
+    
+
+
     public class ProxyMiddleware
     {
-       
-            private readonly RequestDelegate _next;
+        private const int DefaultBufferSize = 4096;
 
-            private ILogger<ProxyMiddleware> logger;
+        private readonly RequestDelegate _next;
+        private readonly HttpClient _httpClient;
+        private readonly ProxyOptions _defaultOptions;
 
-            public ProxyMiddleware(RequestDelegate next)
+        private static readonly string[] NotForwardedWebSocketHeaders = new[] { "Connection", "Host", "Upgrade", "Sec-WebSocket-Key", "Sec-WebSocket-Version" };
+
+        public ProxyMiddleware(RequestDelegate next, ProxyOptions options)
+        {
+            
+            if (next == null)
             {
-              
-                _next = next;
+                throw new ArgumentNullException(nameof(next));
             }
 
-            public async Task Invoke(HttpContext context)
+            if (options == null)
             {
-                var endRequest = false;
-                object urlToProxy = null;
-                if ( context.Items.TryGetValue("finalurl",out urlToProxy))
-                {       
-                        await DownloadAsync(context, urlToProxy as string);
-                        endRequest = true;
-                
-                    
-                }
-                if (!endRequest)
-                {
-                    await _next(context);
-                }
+                throw new ArgumentNullException(nameof(options));
             }
 
-            private static async Task DownloadAsync(HttpContext context, string url)
+            _next = next;
+            _defaultOptions = options;
+
+            if (string.IsNullOrEmpty(_defaultOptions.Host))
             {
-
-
-            var localResponse = context.Response;
-            try
-            {
-
-                Uri uri = new Uri(url);
-                var webRequest = (HttpWebRequest)WebRequest.Create(uri);// HttpWebRequest.CreateHttp(url);
-                webRequest.Method = context.Request.Method;
-                webRequest.AllowAutoRedirect = true;
-                webRequest.AllowReadStreamBuffering = false;
-                webRequest.Referer = webRequest.Referer;
-                webRequest.CookieContainer = new CookieContainer();
-
-                webRequest.KeepAlive = false;
-                webRequest.PreAuthenticate = true;
-                webRequest.Headers.Set("Pragma", "no-cache");
-
-
-
-                foreach (var item in context.Request.Headers)
-                {
-                    webRequest.Headers.Add(item.Key, item.Value);
-                }
-
-                webRequest.Headers["X-Forwarded-For"] = GetIp();
-                
-                webRequest.Date = DateTime.Now;
-
-
-                foreach (var item in context.Request.Cookies)
-                {
-
-                    var k = item.Key;
-                    var v = item.Value;
-
-
-
-
-
-                }
-
-
-
-
-                //TODO: THIS IS THE BEST SOLUTION TO SERVE FILES DIRECTLY. KEEP TWO DIFFERENT FLOWS FOR THIS AND THE ONES THAT NEED FULL RESPOSNSE
-
-
-
-                HttpWebResponse remoteResponse = (HttpWebResponse)webRequest.GetResponse();
-                await DumpFromRequest( localResponse, remoteResponse);
+                throw new ArgumentException("Host parameter is required.", nameof(options));
             }
-            catch (WebException e)
+
+            // if port is not specified default one is taken
+            if (!_defaultOptions.Port.HasValue)
             {
-                using (HttpWebResponse response = (HttpWebResponse)e.Response)
+                if (string.Equals(_defaultOptions.Scheme, "https", StringComparison.OrdinalIgnoreCase))
                 {
-                    await DumpFromRequest(localResponse, response);
+                    _defaultOptions.Port = 443;
                 }
+                else
+                {
+                    _defaultOptions.Port = 80;
+                }
+
+            }
+
+            //if no scheme is choosen, http is taken
+            if (string.IsNullOrEmpty(_defaultOptions.Scheme))
+            {
+                _defaultOptions.Scheme = "http";
+            }
+
+            _httpClient = new HttpClient(_defaultOptions.BackChannelMessageHandler ?? new HttpClientHandler());
+        }
+
+        /// <summary>
+        /// Entry point. Switch betweeb websocket requests and regular http request
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public async Task Invoke(HttpContext context)
+        {
+            if (context.WebSockets.IsWebSocketRequest)
+            {
+                await HandleWebSocketRequest(context);
+            }
+            else
+            {
+                await HandleHttpRequest(context);
             }
         }
 
-        private static async Task DumpFromRequest( HttpResponse localResponse, HttpWebResponse remoteResponse)
+        private async Task HandleWebSocketRequest(HttpContext context)
         {
-            localResponse.Clear();
-            var buffer = new byte[4 * 1024];
-            foreach (string key in remoteResponse.Headers.Keys)
+
+
+            var _options = (context.Items["proxy"] ?? _defaultOptions) as ProxyOptions;
+            using (var client = new ClientWebSocket())
             {
+                foreach (var headerEntry in context.Request.Headers)
+                {
+                    if (!NotForwardedWebSocketHeaders.Contains(headerEntry.Key, StringComparer.OrdinalIgnoreCase))
+                    {
+                        client.Options.SetRequestHeader(headerEntry.Key, headerEntry.Value);
+                    }
+                }
 
-                localResponse.Headers[key] = remoteResponse.Headers[key];
-            }
+                var wsScheme = string.Equals(_options.Scheme, "https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
+                var uriString = $"{wsScheme}://{_options.Host}:{_options.Port}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
 
+                if (_options.WebSocketKeepAliveInterval.HasValue)
+                {
+                    client.Options.KeepAliveInterval = _options.WebSocketKeepAliveInterval.Value;
+                }
 
-            CookieContainer cc = new CookieContainer();
-
-
-            foreach (Cookie currentCookie in remoteResponse.Cookies)
-            {
-                cc.Add(currentCookie);
-                var ci = currentCookie.ToString().FromCookieString();
-                localResponse.Cookies.Append(currentCookie.Value, currentCookie.ToString());
-
-            }
-
-            localResponse.ContentType = remoteResponse.ContentType;
-            localResponse.ContentLength = remoteResponse.ContentLength;
-            localResponse.StatusCode = (int)remoteResponse.StatusCode;
-
-
-            using (var remoteStream = remoteResponse.GetResponseStream())
-            {
                 try
                 {
-                    if (remoteStream.Length != -1)
-                        localResponse.ContentLength = remoteStream.Length;
-
-                    var bytesRead = remoteStream.Read(buffer, 0, buffer.Length);
-
-                    while (bytesRead > 0) // && localResponse.IsClientConnected)
-                    {
-                        await localResponse.Body.WriteAsync(buffer, 0, bytesRead);
-                        bytesRead = remoteStream.Read(buffer, 0, buffer.Length);
-                    }
-
+                    await client.ConnectAsync(new Uri(uriString), context.RequestAborted);
                 }
-                catch (NotSupportedException empty)
+                catch (WebSocketException)
                 {
-                    //NO ERROR NEEDED
+                    context.Response.StatusCode = 400;
+                    return;
+                }
+
+                using (var server = await context.WebSockets.AcceptWebSocketAsync(client.SubProtocol))
+                {
+                    await Task.WhenAll(PumpWebSocket(context,client, server, context.RequestAborted), PumpWebSocket(context,server, client, context.RequestAborted));
                 }
             }
         }
 
-        private static string GetIp()
+        private async Task PumpWebSocket(HttpContext context, WebSocket source, WebSocket destination, CancellationToken cancellationToken)
         {
-            return "127.0.0.1";
-            //TODO: FIX ME
+            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as ProxyOptions;
+
+            var buffer = new byte[_options.BufferSize ?? DefaultBufferSize];
+            while (true)
+            {
+                WebSocketReceiveResult result;
+                try
+                {
+                    result = await source.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    await destination.CloseOutputAsync(WebSocketCloseStatus.EndpointUnavailable, null, cancellationToken);
+                    return;
+                }
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await destination.CloseOutputAsync(source.CloseStatus.Value, source.CloseStatusDescription, cancellationToken);
+                    return;
+                }
+
+                await destination.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, cancellationToken);
+            }
+        }
+
+        private async Task HandleHttpRequest(HttpContext context)
+        {
+            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as ProxyOptions;
+
+            try
+            {
+                var requestMessage = new HttpRequestMessage();
+                var requestMethod = context.Request.Method;
+
+                if (!HttpMethods.IsGet(requestMethod) &&   !HttpMethods.IsHead(requestMethod) &&   !HttpMethods.IsDelete(requestMethod) &&    !HttpMethods.IsTrace(requestMethod))
+                {
+                    var streamContent = new StreamContent(context.Request.Body);
+                    requestMessage.Content = streamContent;
+                }
+
+                // All request headers and cookies must be transferend to remote server. Some headers will be skipped
+                foreach (var header in context.Request.Headers)
+                {
+                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
+                    {
+                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    }
+                }
+
+                //remove standard ports (80 on HTTP and 443 on HTTPS)
+                Boolean https = string.Equals(_options.Scheme, "https", StringComparison.OrdinalIgnoreCase);
+                if (_options.Host.EndsWith(":443") && https)
+                {
+                    _options.Host = _options.Host.Replace(":443", "");
+                }
+
+                if (_options.Host.EndsWith(":80") && !https)
+                {
+                    _options.Host = _options.Host.Replace(":80", "");
+                }
+
+                requestMessage.Headers.Host = _options.Host ;
+                //recreate remote url
+                var uriString = $"{_options.Scheme}://{_options.Host}:{_options.Port}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+                requestMessage.RequestUri = new Uri(uriString);
+                requestMessage.Method = new HttpMethod(context.Request.Method);
+                using (var responseMessage = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted))
+                {
+                    context.Response.StatusCode = (int)responseMessage.StatusCode;
+                    foreach (var header in responseMessage.Headers)
+                    {
+                        context.Response.Headers[header.Key] = header.Value.ToArray();
+                    }
+
+                    foreach (var header in responseMessage.Content.Headers)
+                    {
+                        context.Response.Headers[header.Key] = header.Value.ToArray();
+                    }
+
+
+                    if (!_options.SendChunked)
+                    {
+                        //tell to the browser that response is not chunked
+                        context.Response.Headers.Remove("transfer-encoding");
+                        await responseMessage.Content.CopyToAsync(context.Response.Body);
+                    }
+                    else
+                    {
+                        var buffer = new byte[_options.BufferSize ?? DefaultBufferSize];
+
+                        using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
+                        {
+                            //long pos = responseStream.Position;
+                            //if (pos > 0)
+                            //{
+                            //    responseStream.Seek(0, SeekOrigin.Begin);
+                            //}
+                            //context.Response.Body = new MemoryStream();
+                            
+                                int len = 0;
+                                int full = 0;
+                                while ((len = await responseStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    await context.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                                   // await context.Response.Body.FlushAsync();
+                                    full += buffer.Length;
+                                }
+                               // context.Response.ContentLength = full;
+                            
+                            context.Response.Headers.Remove("transfer-encoding");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+
+            }
         }
     }
 }
