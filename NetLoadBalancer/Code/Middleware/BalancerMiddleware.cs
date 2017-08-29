@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Primitives;
 
 namespace NetLoadBalancer.Code.Middleware
 { 
@@ -46,6 +47,17 @@ namespace NetLoadBalancer.Code.Middleware
             last = (last + 1) % Nodes.Count;
             context.Items["proxy-options"] = Nodes[last];
 
+
+
+            //Requests
+
+            context.Request.Headers["X-Forwarded-For"] = context.Connection.RemoteIpAddress.ToString();
+            context.Request.Headers["X-Forwarded-Proto"] = context.Request.Protocol.ToString();
+            int port = context.Request.Host.Port ?? (context.Request.IsHttps ? 443 : 80);
+            context.Request.Headers["X-Forwarded-Port"] = port.ToString();
+
         }
+
+     
     }
 }
