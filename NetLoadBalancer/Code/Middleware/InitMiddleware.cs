@@ -1,38 +1,49 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NetLoadBalancer.Code.Classes;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using NetLoadBalancer.Code.Options;
+using static NetLoadBalancer.Code.Options.System;
 
 namespace NetLoadBalancer.Code.Middleware
 {
-    public class InitMiddleware
+    public class InitMiddleware: FilterMiddleware
     {
        
-            private readonly RequestDelegate _next;
+           // private readonly RequestDelegate _next;
 
             private ILogger<InitMiddleware> logger;
 
-            public InitMiddleware(RequestDelegate next)
-            {
+            //public InitMiddleware(RequestDelegate next)
+            //{
               
-                _next = next;
-            }
+            //    _next = next;
+            //}
 
-            public async Task Invoke(HttpContext context)
-            {
-            context.Items["proxy-options"] = null;//default option will be used
+        public override string Name => "Init";
 
-            if (_next != null)
-                {
-                    await _next(context);
-                }
-           }
 
-           
-        
+        public override async Task Invoke(HttpContext context)
+        {
+            InvokeImpl(context, null, null, null);
+            await NextStep(context);
+            
+        }
+
+        public async override Task InvokeImpl(HttpContext context, string host, VHostOptions vhost, IConfigurationSection settings)
+        {
+            host = context.Request.Host.Value;
+            vhost = BalancerSettings.Current.GetSettings<VHostOptions>(host);
+
+            context.Items["bal-host"] = host;
+            context.Items["bal-vhost"] = vhost;
+        }
     }
+    
 }

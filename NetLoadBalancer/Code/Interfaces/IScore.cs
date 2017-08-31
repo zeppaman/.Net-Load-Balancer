@@ -8,7 +8,7 @@ namespace NetLoadBalancer.Code.Interfaces
 {
     interface IScore
     {
-         long GetScore(ProxyOptions proxyOptions);
+         long GetScore(InternalProxyOptions proxyOptions);
 
         
     }

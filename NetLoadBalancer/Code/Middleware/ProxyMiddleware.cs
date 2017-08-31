@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NetLoadBalancer.Code.Classes;
 using NetLoadBalancer.Code.Options;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using System.Net.Http;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace NetLoadBalancer.Code.Middleware
 {
@@ -16,36 +18,27 @@ namespace NetLoadBalancer.Code.Middleware
     
 
 
-    public class ProxyMiddleware
+    public class ProxyMiddleware: FilterMiddleware
     {
         private const int DefaultBufferSize = 4096;
 
         private readonly RequestDelegate _next;
         private readonly HttpClient _httpClient;
-        private readonly ProxyOptions _defaultOptions;
+        private readonly InternalProxyOptions _defaultOptions;
 
         private static readonly string[] NotForwardedWebSocketHeaders = new[] { "Connection", "Host", "Upgrade", "Sec-WebSocket-Key", "Sec-WebSocket-Version" };
 
-        public ProxyMiddleware(RequestDelegate next, ProxyOptions options)
+        public override string Name => "Proxy";
+
+       
+
+        public ProxyMiddleware()
         {
-            
-            if (next == null)
+            _defaultOptions = new InternalProxyOptions()
             {
-                throw new ArgumentNullException(nameof(next));
-            }
+                SendChunked = false
 
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            _next = next;
-            _defaultOptions = options;
-
-            if (string.IsNullOrEmpty(_defaultOptions.Host))
-            {
-                throw new ArgumentException("Host parameter is required.", nameof(options));
-            }
+            };
 
             // if port is not specified default one is taken
             if (!_defaultOptions.Port.HasValue)
@@ -75,7 +68,7 @@ namespace NetLoadBalancer.Code.Middleware
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public async Task Invoke(HttpContext context)
+        public async override Task InvokeImpl(HttpContext context, string host, VHostOptions vhost, IConfigurationSection settings)
         {
             if (context.WebSockets.IsWebSocketRequest)
             {
@@ -91,7 +84,16 @@ namespace NetLoadBalancer.Code.Middleware
         {
 
 
-            var _options = (context.Items["proxy"] ?? _defaultOptions) as ProxyOptions;
+          
+
+            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
+
+            var destination = (context.Items["bal-destination"] ?? _defaultOptions) as Node;
+            var host = (destination == null) ? _options.Host : destination.Host;
+            var port = (destination == null) ? _options.Port : destination.Port;
+            var scheme = (destination == null) ? _options.Scheme : destination.Scheme;
+
+
             using (var client = new ClientWebSocket())
             {
                 foreach (var headerEntry in context.Request.Headers)
@@ -102,8 +104,8 @@ namespace NetLoadBalancer.Code.Middleware
                     }
                 }
 
-                var wsScheme = string.Equals(_options.Scheme, "https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
-                var uriString = $"{wsScheme}://{_options.Host}:{_options.Port}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+                var wsScheme = string.Equals(destination.Scheme, "https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
+                string url = GetUri(context, host, port, scheme);
 
                 if (_options.WebSocketKeepAliveInterval.HasValue)
                 {
@@ -112,7 +114,7 @@ namespace NetLoadBalancer.Code.Middleware
 
                 try
                 {
-                    await client.ConnectAsync(new Uri(uriString), context.RequestAborted);
+                    await client.ConnectAsync(new Uri(url), context.RequestAborted);
                 }
                 catch (WebSocketException)
                 {
@@ -129,7 +131,7 @@ namespace NetLoadBalancer.Code.Middleware
 
         private async Task PumpWebSocket(HttpContext context, WebSocket source, WebSocket destination, CancellationToken cancellationToken)
         {
-            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as ProxyOptions;
+            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
 
             var buffer = new byte[_options.BufferSize ?? DefaultBufferSize];
             while (true)
@@ -156,14 +158,18 @@ namespace NetLoadBalancer.Code.Middleware
 
         private async Task HandleHttpRequest(HttpContext context)
         {
-            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as ProxyOptions;
+            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
 
-            try
-            {
+            var destination = (context.Items["bal-destination"] ?? _defaultOptions) as Node;
+            var host = (destination == null) ? _options.Host : destination.Host;
+            var port = (destination == null) ? _options.Port : destination.Port;
+            var scheme = (destination == null) ? _options.Scheme : destination.Scheme;
+
+          
                 var requestMessage = new HttpRequestMessage();
                 var requestMethod = context.Request.Method;
 
-                if (!HttpMethods.IsGet(requestMethod) &&   !HttpMethods.IsHead(requestMethod) &&   !HttpMethods.IsDelete(requestMethod) &&    !HttpMethods.IsTrace(requestMethod))
+                if (!HttpMethods.IsGet(requestMethod) && !HttpMethods.IsHead(requestMethod) && !HttpMethods.IsDelete(requestMethod) && !HttpMethods.IsTrace(requestMethod))
                 {
                     var streamContent = new StreamContent(context.Request.Body);
                     requestMessage.Content = streamContent;
@@ -178,21 +184,10 @@ namespace NetLoadBalancer.Code.Middleware
                     }
                 }
 
-                //remove standard ports (80 on HTTP and 443 on HTTPS)
-                Boolean https = string.Equals(_options.Scheme, "https", StringComparison.OrdinalIgnoreCase);
-                if (_options.Host.EndsWith(":443") && https)
-                {
-                    _options.Host = _options.Host.Replace(":443", "");
-                }
-
-                if (_options.Host.EndsWith(":80") && !https)
-                {
-                    _options.Host = _options.Host.Replace(":80", "");
-                }
-
-                requestMessage.Headers.Host = _options.Host ;
+                host = "www.vecchievie.it";
+                requestMessage.Headers.Host = host;
                 //recreate remote url
-                var uriString = $"{_options.Scheme}://{_options.Host}:{_options.Port}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+                string uriString = GetUri(context, host, port, scheme);
                 requestMessage.RequestUri = new Uri(uriString);
                 requestMessage.Method = new HttpMethod(context.Request.Method);
                 using (var responseMessage = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted))
@@ -227,26 +222,41 @@ namespace NetLoadBalancer.Code.Middleware
                             //    responseStream.Seek(0, SeekOrigin.Begin);
                             //}
                             //context.Response.Body = new MemoryStream();
-                            
-                                int len = 0;
-                                int full = 0;
-                                while ((len = await responseStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                                {
-                                    await context.Response.Body.WriteAsync(buffer, 0, buffer.Length);
-                                   // await context.Response.Body.FlushAsync();
-                                    full += buffer.Length;
-                                }
-                               // context.Response.ContentLength = full;
-                            
+
+                            int len = 0;
+                            int full = 0;
+                            while ((len = await responseStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                            {
+                                await context.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                                // await context.Response.Body.FlushAsync();
+                                full += buffer.Length;
+                            }
+                            // context.Response.ContentLength = full;
+
                             context.Response.Headers.Remove("transfer-encoding");
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-
-            }
+           
         }
+
+        private static string GetUri(HttpContext context, string host, int? port, string scheme)
+        {
+            var urlPort = "";
+            if (port.HasValue 
+                && !(port.Value==443  && "https".Equals(scheme,StringComparison.InvariantCultureIgnoreCase))
+                && !(port.Value == 80 && "http".Equals(scheme, StringComparison.InvariantCultureIgnoreCase))
+                )
+            {
+                urlPort = ":" + port.Value;
+            }
+            return $"{scheme}://{host}{urlPort}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+        }
+
+        public override bool Terminate(HttpContext httpContext)
+        {
+            return true;
+        }
+
     }
 }

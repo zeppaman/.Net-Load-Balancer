@@ -11,41 +11,41 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
+using NetLoadBalancer.Code.Classes;
+using Microsoft.Extensions.Configuration;
+
 
 namespace NetLoadBalancer.Code.Middleware
-{ 
+{
 
-    public class BalancerMiddleware
+    /// <summary>
+    /// NetLoadBalancer.Code.Middleware.BalancerMiddleware
+    /// </summary>
+    public class BalancerMiddleware:FilterMiddleware
     {
 
-        public static List<ProxyOptions> Nodes { get; set; }
+       
+        public override string Name =>  "Balancer";
+
         int last = 0;
 
-        private readonly RequestDelegate _next;
+      //  private readonly RequestDelegate _next;
 
         private ILogger<BalancerMiddleware> logger;
 
-        public BalancerMiddleware(RequestDelegate next)
+        //public BalancerMiddleware(RequestDelegate next)
+        //{
+        //    _next = next;
+        //}
+
+        public async override Task InvokeImpl(HttpContext context, string host, VHostOptions vhost, IConfigurationSection settings)
         {
-            _next = next;
-        }
 
-        public async Task Invoke(HttpContext context)
-        {
-
-            BalanceRequest(context);
-
-            if (_next != null)
-            {
-                await _next(context);
-            }
-        }
-
-        private void BalanceRequest(HttpContext context)
-        {
+            BalancerOptions options= new BalancerOptions();
+            settings.Bind("Settings:Balancer", options);
             //Round Robin
-            last = (last + 1) % Nodes.Count;
-            context.Items["proxy-options"] = Nodes[last];
+            last = (last + 1) % options.Nodes.Length;
+            context.Items["bal-destination"] = options.Nodes[last];
 
 
 

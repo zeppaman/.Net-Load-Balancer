@@ -10,8 +10,8 @@
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Code\Classes\" />
     <Folder Include="Code\Enums\" />
+    <Folder Include="Code\Extension\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="conf\ApacheModRewrite.config" />

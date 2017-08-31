@@ -11,82 +11,64 @@ using NLog.Web;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using Microsoft.AspNetCore.Rewrite;
-using NetLoadBalancer.Code.Extension;
 using Microsoft.AspNetCore.Http;
 using NetLoadBalancer.Code.Middleware;
 using Microsoft.Extensions.Options;
 using NetLoadBalancer.Code.Options;
+using static NetLoadBalancer.Code.Options.System;
 
 namespace NetLoadBalancer
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration,IHostingEnvironment env)
         {
             Configuration = configuration;
+
+            var builder = new ConfigurationBuilder()
+               .SetBasePath(env.ContentRootPath)
+               .AddJsonFile("conf/appsettings.json", optional: true, reloadOnChange: true);
+
+            string[] files = Directory.GetFiles(Path.Combine(env.ContentRootPath, "conf", "vhosts"));
+
+            foreach (var s in files)
+            {
+                builder = builder.AddJsonFile(s);
+            }
+            
+            builder=builder.AddEnvironmentVariables();
+            Configuration = builder.Build();
         }
 
-        public IConfiguration Configuration { get; }
+        public static IConfiguration Configuration { get; private set; }
 
        
         public void ConfigureServices(IServiceCollection services)
         {
-           
-            //services.AddResponseCaching();
+            services.AddOptions();
+            services.Configure<BalancerSettings>(Configuration.GetSection("Balancersettings"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory  loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory  loggerFactory, IOptions<BalancerSettings> init)
         {
 
-          
+            BalancerSettings.Init(init);
 
             //Configure Log
             ConfigureLog(app, env, loggerFactory);
 
-            ConfigureInit(app, env);
 
-            //ConfigureCaching(app, env);
-            //Configure Redirect
-            //ConfigureRedirect(app, env);
-
-           ConfigureProxy(app, env);
-
-
-        }
-
-        private void ConfigureInit(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            app.UseInit();
-        }
-
-        private void ConfigureProxy(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            ProxyOptions options = new ProxyOptions();
-            options.Port = 80;
-            options.Scheme = "http";
-            options.SendChunked = false;
-
-            app.UseProxyServer(options);
-        }
-
-        private void ConfigureCaching(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            app.UseResponseCaching();
-        }
-
-        private void ConfigureRedirect(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            using (StreamReader apacheModRewriteStreamReader = File.OpenText(".\\conf\\ApacheModRewrite.config"))
-            using (StreamReader iisUrlRewriteStreamReader = File.OpenText(".\\conf\\IISUrlRewrite.config"))
+            foreach (var item in BalancerSettings.Current.Middlewares)
             {
-                var options = new RewriteOptions()
-                    .AddApacheModRewrite(apacheModRewriteStreamReader)
-                    .AddIISUrlRewrite(iisUrlRewriteStreamReader);
-
-                app.UseRewriter(options);
+                item.Value.Register(app, Configuration, env);
             }
+
+
         }
+
+       
+      
 
         private static void ConfigureLog(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {

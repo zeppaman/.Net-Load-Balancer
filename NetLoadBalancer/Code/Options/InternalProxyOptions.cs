@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace NetLoadBalancer.Code.Options
 {
-    public class ProxyOptions
+    public class InternalProxyOptions
     {
         private int? _bufferSize;
         public long Score { get; set; }

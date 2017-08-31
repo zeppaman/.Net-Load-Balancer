@@ -1,0 +1,31 @@
+﻿{
+  "BalancerSettings": {
+    "Mappings": [
+      {
+        "Host": "localhost:52231",
+        "SettingsName": "site1"
+      }
+    ],
+    "Plugins": [
+      {
+        "Name": "Init",
+        "Impl": "NetLoadBalancer.Code.Middleware.InitMiddleware"
+      },
+      //{
+      //  "Name": "Cache",
+      //  "Impl": ""
+      //},
+      {
+        "Name": "Balancer",
+        "Impl": "NetLoadBalancer.Code.Middleware.BalancerMiddleware"
+      },
+      {
+        "Name": "Proxy",
+        "Impl": "NetLoadBalancer.Code.Middleware.ProxyMiddleware"
+      }
+    ]
+
+      
+    
+  }
+}
