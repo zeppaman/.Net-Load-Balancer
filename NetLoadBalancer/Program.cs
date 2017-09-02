@@ -20,6 +20,8 @@ namespace NetLoadBalancer
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
+                .UseSetting("detailedErrors", "true")
+                .UseUrls("http://*:52231")
                 .Build();
     }
 }

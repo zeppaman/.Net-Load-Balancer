@@ -70,28 +70,35 @@ namespace NetLoadBalancer.Code.Middleware
         /// <returns></returns>
         public async override Task InvokeImpl(HttpContext context, string host, VHostOptions vhost, IConfigurationSection settings)
         {
+
+
+            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
+
+            var destination = (context.Items["bal-destination"]) as Node;
+            if (destination == null)
+            {     
+                 destination = settings.GetSection("Settings:Proxy:DefaultDestination").Get<Node>();
+            }
+            var chost = (destination == null) ? _options.Host : destination.Host;
+            var cport = (destination == null) ? _options.Port : destination.Port;
+            var scheme = (destination == null) ? _options.Scheme : destination.Scheme;
+
             if (context.WebSockets.IsWebSocketRequest)
             {
-                await HandleWebSocketRequest(context);
+                await HandleWebSocketRequest(context,  _options,  destination,  chost,  cport.Value,  scheme);
             }
             else
             {
-                await HandleHttpRequest(context);
+                await HandleHttpRequest(context, _options, destination, chost, cport.Value, scheme);
             }
         }
 
-        private async Task HandleWebSocketRequest(HttpContext context)
+        private async Task HandleWebSocketRequest(HttpContext context, InternalProxyOptions _options, Node destination, string host, int port, string scheme)
         {
 
 
           
 
-            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
-
-            var destination = (context.Items["bal-destination"] ?? _defaultOptions) as Node;
-            var host = (destination == null) ? _options.Host : destination.Host;
-            var port = (destination == null) ? _options.Port : destination.Port;
-            var scheme = (destination == null) ? _options.Scheme : destination.Scheme;
 
 
             using (var client = new ClientWebSocket())
@@ -124,14 +131,14 @@ namespace NetLoadBalancer.Code.Middleware
 
                 using (var server = await context.WebSockets.AcceptWebSocketAsync(client.SubProtocol))
                 {
-                    await Task.WhenAll(PumpWebSocket(context,client, server, context.RequestAborted), PumpWebSocket(context,server, client, context.RequestAborted));
+                    await Task.WhenAll(PumpWebSocket(context,client, server, _options, context.RequestAborted), PumpWebSocket(context,server, client, _options, context.RequestAborted));
                 }
             }
         }
 
-        private async Task PumpWebSocket(HttpContext context, WebSocket source, WebSocket destination, CancellationToken cancellationToken)
+        private async Task PumpWebSocket(HttpContext context, WebSocket source, WebSocket destination, InternalProxyOptions _options, CancellationToken cancellationToken)
         {
-            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
+          
 
             var buffer = new byte[_options.BufferSize ?? DefaultBufferSize];
             while (true)
@@ -156,14 +163,9 @@ namespace NetLoadBalancer.Code.Middleware
             }
         }
 
-        private async Task HandleHttpRequest(HttpContext context)
+        private async Task HandleHttpRequest(HttpContext context, InternalProxyOptions _options, Node destination, string host, int port, string scheme)
         {
-            var _options = (context.Items["proxy-options"] ?? _defaultOptions) as InternalProxyOptions;
-
-            var destination = (context.Items["bal-destination"] ?? _defaultOptions) as Node;
-            var host = (destination == null) ? _options.Host : destination.Host;
-            var port = (destination == null) ? _options.Port : destination.Port;
-            var scheme = (destination == null) ? _options.Scheme : destination.Scheme;
+         
 
           
                 var requestMessage = new HttpRequestMessage();
@@ -184,7 +186,7 @@ namespace NetLoadBalancer.Code.Middleware
                     }
                 }
 
-                host = "www.vecchievie.it";
+               
                 requestMessage.Headers.Host = host;
                 //recreate remote url
                 string uriString = GetUri(context, host, port, scheme);

@@ -35,7 +35,9 @@ namespace NetLoadBalancer.Code.Classes
         public bool IsActive(HttpContext context)
         {
             string host = context.Items["bal-host"] as string;
+            if (string.IsNullOrEmpty(host)) throw new Exception("HOST is empty. Please check configuration.");
             VHostOptions VHost= context.Items["bal-vhost"] as VHostOptions;
+            if (VHost==null) throw new Exception($"VHOST is missing for {host}. Please check configuration.");
             return VHost.Filters != null && VHost.Filters.Contains(this.Name, StringComparer.InvariantCultureIgnoreCase);
         }
 

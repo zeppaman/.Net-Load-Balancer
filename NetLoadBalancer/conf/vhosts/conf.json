@@ -4,6 +4,14 @@
       {
         "Host": "localhost:52231",
         "SettingsName": "site1"
+      },
+      {
+        "Host": "proxy.local:52231",
+        "SettingsName": "proxy_sample"
+      },
+      {
+        "Host": "balancer.local:52231",
+        "SettingsName": "balancer_sample"
       }
     ],
     "Plugins": [

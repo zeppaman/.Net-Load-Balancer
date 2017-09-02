@@ -1,0 +1,46 @@
+﻿{
+  "proxy_sample": {
+    "Host": "proxy.local",
+    "Port": 52231,
+    "Scheme": "http",
+    "Filters": [ "Proxy" ],
+    "Settings": {
+      //"Cache": {
+      //  "rules": [
+      //    {
+      //      "path": "^/imgs/(.*)$",
+      //      "duration": "10s"
+      //    },
+      //    {
+      //      "path": "^/css/(.*)$",
+      //      "duration": "10s"
+      //    }
+      //  ]
+      //},
+      //"Balancer": {
+      //  "Nodes": [
+      //    {
+      //      "Host": "www1.vecchievie.it",
+      //      "Port": 443,
+      //      "Scheme": "https"
+      //    },
+      //    {
+      //      "Host": "www2.vecchievie.it",
+      //      "Port": 443,
+      //      "Scheme": "https"
+      //    }
+      //  ],
+      //  "Policy": "RoundRobin"
+      //},
+      "Proxy": {
+        "DefaultDestination": {
+          "Host": "www.vecchievie.it",
+          "Port": 443,
+          "Scheme": "https"
+        }
+      }
+
+
+    }
+  }
+}

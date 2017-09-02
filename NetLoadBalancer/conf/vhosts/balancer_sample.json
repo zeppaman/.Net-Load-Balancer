@@ -1,7 +1,7 @@
 ﻿{
-  "site1": {
-    "Host": "www.vecchievie.it",
-    "Port": 443,
+  "balancer_sample": {
+    "Host": "balancer.local",
+    "Port": 52231,
     "Scheme": "https",
     "Filters": [ "Cache", "Balancer", "Proxy" ],
     "Settings": {
@@ -20,12 +20,12 @@
       "Balancer": {
         "Nodes": [
           {
-            "Host": "www1.vecchievie.it",
+            "Host": "localhost:5051",
             "Port": 443,
             "Scheme": "https"
           },
           {
-            "Host": "www2.vecchievie.it",
+            "Host": "localhost:5052",
             "Port": 443,
             "Scheme": "https"
           }
@@ -40,7 +40,6 @@
         }
       }
 
-
     }
   }
-}
+  }

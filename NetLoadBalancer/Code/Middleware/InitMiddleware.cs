@@ -39,7 +39,13 @@ namespace NetLoadBalancer.Code.Middleware
         public async override Task InvokeImpl(HttpContext context, string host, VHostOptions vhost, IConfigurationSection settings)
         {
             host = context.Request.Host.Value;
+            if (string.IsNullOrEmpty(host)) throw new Exception("HOST is empty. Please check configuration.");
             vhost = BalancerSettings.Current.GetSettings<VHostOptions>(host);
+            if (vhost == null || string.IsNullOrEmpty(vhost.Host)) throw new Exception($"VHOST is missing for {host}. Please check configuration.");
+
+
+         
+           
 
             context.Items["bal-host"] = host;
             context.Items["bal-vhost"] = vhost;
