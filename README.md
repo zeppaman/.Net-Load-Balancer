@@ -26,6 +26,8 @@ If intersted, plese contact me or open an issues.
 
 # How .Net Load Balancer works
 
+Please se the full documentation into the [wiki page](https://github.com/zeppaman/.Net-Load-Balancer/wiki).
+
 ## Filters
 This module provide an easy way to filter request based on some rules. All request that math the filter will be dropped. Each url is tested over a set of **rule**. If the url match the rule the request will be dropped. Only one match determine the rule activations so, basically, all rules are "OR" conditions by default. Each rule can test a set of request parameters (url, agent, headers). Inside the single rule all condition must be true to activate the rule. This means we are working with something like this ( CONDITION A AND CONDITION B) OR (CONDITION C) and this will support most cases.
 
