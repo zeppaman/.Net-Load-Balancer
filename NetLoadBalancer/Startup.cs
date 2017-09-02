@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NLog.Extensions.Logging;
-using NLog.Web;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using Microsoft.AspNetCore.Rewrite;
@@ -55,13 +53,12 @@ namespace NetLoadBalancer
 
             BalancerSettings.Init(init);
 
-            //Configure Log
-            ConfigureLog(app, env, loggerFactory);
+           
 
 
             foreach (var item in BalancerSettings.Current.Middlewares)
             {
-                item.Value.Register(app, Configuration, env);
+                item.Value.Register(app, Configuration, env, loggerFactory);
             }
 
 
@@ -70,13 +67,6 @@ namespace NetLoadBalancer
        
       
 
-        private static void ConfigureLog(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-        {
-           
-            loggerFactory.AddNLog();
-            app.AddNLogWeb();
-            env.ConfigureNLog(".\\conf\\nlog.config");
-            
-        }
+        
     }
 }

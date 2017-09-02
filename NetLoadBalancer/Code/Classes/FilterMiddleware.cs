@@ -32,7 +32,7 @@ namespace NetLoadBalancer.Code.Classes
            
         }
         
-        public bool IsActive(HttpContext context)
+        public virtual bool IsActive(HttpContext context)
         {
             string host = context.Items["bal-host"] as string;
             if (string.IsNullOrEmpty(host)) throw new Exception("HOST is empty. Please check configuration.");
@@ -71,7 +71,7 @@ namespace NetLoadBalancer.Code.Classes
             return false;
         }
 
-        public virtual IApplicationBuilder Register(IApplicationBuilder app, IConfiguration con, IHostingEnvironment env)
+        public virtual IApplicationBuilder Register(IApplicationBuilder app, IConfiguration con, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
             
             return app.Use(next => 

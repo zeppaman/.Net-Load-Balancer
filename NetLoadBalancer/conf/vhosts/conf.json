@@ -16,6 +16,10 @@
     ],
     "Plugins": [
       {
+        "Name": "Log",
+        "Impl": "NetLoadBalancer.Code.Middleware.LogMiddleware"
+      },
+      {
         "Name": "Init",
         "Impl": "NetLoadBalancer.Code.Middleware.InitMiddleware"
       },
