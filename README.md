@@ -18,8 +18,8 @@ Each module is configurable by a dedicated config file.
 
 
 
-## Where is the code?
-I'm working on it, please be patient, but please open a issue or contact me to tell me that this prject may be useful and you will need. This will make me work harder ;-)
+## Where I can Download it?
+Atm there aren't any relase. This beacause I'm still working on it, please be patient. You cannot download a relese package but you can clone and compile. Please open a issue or contact me to tell me that this prject may be useful and you will need. This will make me work harder ;-)
 
 ## Contibute
 If intersted, plese contact me or open an issues. 
