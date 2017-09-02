@@ -2,8 +2,8 @@
   "balancer_sample": {
     "Host": "balancer.local",
     "Port": 52231,
-    "Scheme": "https",
-    "Filters": [ "Cache", "Balancer", "Proxy" ],
+    "Scheme": "http",
+    "Filters": [ "Cache", "RequestFilter","Balancer", "Proxy" ],
     "Settings": {
       "Cache": {
         "rules": [
@@ -17,17 +17,29 @@
           }
         ]
       },
+      "RequestFilter": {
+        "rules": [
+          {
+            "path": "^/favicon.ico$",
+            "duration": "10s"
+          },
+          {
+            "path": "^/(.*)\\.ico$",
+            "duration": "10s"
+          }
+        ]
+      },
       "Balancer": {
         "Nodes": [
           {
-            "Host": "localhost:5051",
-            "Port": 443,
-            "Scheme": "https"
+            "Host": "localhost",
+            "Port": 5051,
+            "Scheme": "http"
           },
           {
-            "Host": "localhost:5052",
-            "Port": 443,
-            "Scheme": "https"
+            "Host": "localhost",
+            "Port": 5052,
+            "Scheme": "http"
           }
         ],
         "Policy": "RoundRobin"

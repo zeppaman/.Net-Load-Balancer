@@ -19,6 +19,10 @@
         "Name": "Init",
         "Impl": "NetLoadBalancer.Code.Middleware.InitMiddleware"
       },
+      {
+        "Name": "RequestFilter",
+        "Impl": "NetLoadBalancer.Code.Middleware.RequestFilterMiddleware"
+      },
       //{
       //  "Name": "Cache",
       //  "Impl": ""

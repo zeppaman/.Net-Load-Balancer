@@ -44,8 +44,8 @@ namespace NetLoadBalancer.Code.Middleware
             BalancerOptions options= new BalancerOptions();
             settings.Bind("Settings:Balancer", options);
             //Round Robin
-            last = (last + 1) % options.Nodes.Length;
-            context.Items["bal-destination"] = options.Nodes[last];
+            var index = (last++) % options.Nodes.Length;
+            context.Items["bal-destination"] = options.Nodes[index];
 
 
 
