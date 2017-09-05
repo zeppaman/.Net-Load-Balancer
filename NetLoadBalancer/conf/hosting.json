@@ -1,0 +1,4 @@
+﻿{
+  "server": "Microsoft.AspNetCore.Server.Kestrel",
+  "server.urls": "http://balancer.local:59602/;http://sample:59602/"
+}

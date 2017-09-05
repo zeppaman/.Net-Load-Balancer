@@ -1,4 +1,20 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿/*
+    This file is part of NetLoadBalancer, Daniele Fontani (https://github.com/zeppaman/.Net-Load-Balancer).
+
+    NetLoadBalancer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    NetLoadBalancer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Nome-Programma.  If not, see <http://www.gnu.org/licenses/>.
+*/
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NetLoadBalancer.Code.Classes;
 using System;
@@ -13,18 +29,16 @@ using static NetLoadBalancer.Code.Options.System;
 
 namespace NetLoadBalancer.Code.Middleware
 {
+    /// <summary>
+    /// Init middleware, used to setup enviornment. Is the first step, not optional
+    /// </summary>
     public class InitMiddleware: FilterMiddleware
     {
        
-           // private readonly RequestDelegate _next;
+          
 
             private ILogger<InitMiddleware> logger;
-
-            //public InitMiddleware(RequestDelegate next)
-            //{
-              
-            //    _next = next;
-            //}
+          
 
         public override string Name => "Init";
 

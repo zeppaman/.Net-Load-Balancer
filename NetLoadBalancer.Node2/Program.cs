@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Copyright (c) 2011 rubicon IT GmbH
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

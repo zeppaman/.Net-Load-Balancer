@@ -1,4 +1,20 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿/*
+    This file is part of NetLoadBalancer, Daniele Fontani (https://github.com/zeppaman/.Net-Load-Balancer).
+
+    NetLoadBalancer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    NetLoadBalancer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Nome-Programma.  If not, see <http://www.gnu.org/licenses/>.
+*/
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetLoadBalancer.Code.Options;
@@ -20,6 +36,7 @@ namespace NetLoadBalancer.Code.Middleware
 
     /// <summary>
     /// NetLoadBalancer.Code.Middleware.BalancerMiddleware
+    /// Implement balancing logic
     /// </summary>
     public class BalancerMiddleware:FilterMiddleware
     {
@@ -27,17 +44,10 @@ namespace NetLoadBalancer.Code.Middleware
         Dictionary<string, BalancerData> data = new Dictionary<string, BalancerData>();
        
         public override string Name =>  "Balancer";
-
-        int last = 0;
-
-      //  private readonly RequestDelegate _next;
+        
 
         private ILogger<BalancerMiddleware> logger;
-
-        //public BalancerMiddleware(RequestDelegate next)
-        //{
-        //    _next = next;
-        //}
+    
 
         public async override Task InvokeImpl(HttpContext context, string host, VHostOptions vhost, IConfigurationSection settings)
         {
@@ -58,9 +68,9 @@ namespace NetLoadBalancer.Code.Middleware
             {
                 balancerData = data[host];
             }
-
           
-
+            //Different logic basing on algoritm
+            //TODO: make it generic using interface\implementation for algoritm
             if (options.Policy == "RoundRobin")
             {
             
@@ -75,8 +85,7 @@ namespace NetLoadBalancer.Code.Middleware
 
 
 
-            //Requests
-
+            //Alter request
             context.Request.Headers["X-Forwarded-For"] = context.Connection.RemoteIpAddress.ToString();
             context.Request.Headers["X-Forwarded-Proto"] = context.Request.Protocol.ToString();
             int port = context.Request.Host.Port ?? (context.Request.IsHttps ? 443 : 80);
@@ -86,12 +95,24 @@ namespace NetLoadBalancer.Code.Middleware
 
         }
 
+        /// <summary>
+        /// Roud robin implementation
+        /// </summary>
+        /// <param name="balancerData"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
         private object RoundRobin(BalancerData balancerData, BalancerOptions options)
         {
             balancerData.LastServed = (balancerData.LastServed+1) % options.Nodes.Length;
             return options.Nodes[balancerData.LastServed];
         }
 
+        /// <summary>
+        /// Request count implementation
+        /// </summary>
+        /// <param name="balancerData"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
         private Node RequestCount(BalancerData balancerData,BalancerOptions options)
         {
             var key=balancerData.Scores.OrderByDescending(x => x.Value).FirstOrDefault().Key;

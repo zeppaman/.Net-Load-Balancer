@@ -1,0 +1,34 @@
+﻿{
+  "balancer": 
+    {
+      "Host": "balancer.local",
+      "Port": 80,
+      "Scheme": "http",
+      "Filters": [ "Cache", "Balancer", "Proxy" ],
+      "Settings": {
+        "Balancer": {
+          "Nodes": [
+            {
+              "Host": "localhost",
+              "Port": 5051,
+              "Scheme": "http"
+            },
+            {
+              "Host": "localhost",
+              "Port": 5052,
+              "Scheme": "http"
+            }
+          ],
+          "Policy": "RoundRobin"
+        },
+        "Proxy": {
+          "DefaultDestination": {
+            "Host": "not used. Balancer define it for any request",
+            "Port": 80,
+            "Scheme": "http"
+          }
+        }
+
+      }
+    }
+  }

@@ -1,4 +1,20 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿/*
+    This file is part of NetLoadBalancer, Daniele Fontani (https://github.com/zeppaman/.Net-Load-Balancer).
+
+    NetLoadBalancer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    NetLoadBalancer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Nome-Programma.  If not, see <http://www.gnu.org/licenses/>.
+*/
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NetLoadBalancer.Code.Classes;
 using NetLoadBalancer.Code.Options;
@@ -14,10 +30,11 @@ using Microsoft.Extensions.Configuration;
 
 namespace NetLoadBalancer.Code.Middleware
 {
-
     
 
-
+    /// <summary>
+    /// this module serve content basing on input coming from previous steps
+    /// </summary>
     public class ProxyMiddleware: FilterMiddleware
     {
         private const int DefaultBufferSize = 4096;
@@ -31,7 +48,9 @@ namespace NetLoadBalancer.Code.Middleware
         public override string Name => "Proxy";
 
        
-
+        /// <summary>
+        /// default init
+        /// </summary>
         public ProxyMiddleware()
         {
             _defaultOptions = new InternalProxyOptions()
@@ -64,7 +83,7 @@ namespace NetLoadBalancer.Code.Middleware
         }
 
         /// <summary>
-        /// Entry point. Switch betweeb websocket requests and regular http request
+        /// Entry point. Switch between websocket requests and regular http request
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
@@ -93,14 +112,19 @@ namespace NetLoadBalancer.Code.Middleware
             }
         }
 
+        /// <summary>
+        /// Handle also Web socket, calling pump method inside
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="_options"></param>
+        /// <param name="destination"></param>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="scheme"></param>
+        /// <returns></returns>
         private async Task HandleWebSocketRequest(HttpContext context, InternalProxyOptions _options, Node destination, string host, int port, string scheme)
         {
-
-
-          
-
-
-
+            
             using (var client = new ClientWebSocket())
             {
                 foreach (var headerEntry in context.Request.Headers)
@@ -135,7 +159,16 @@ namespace NetLoadBalancer.Code.Middleware
                 }
             }
         }
-
+        
+        /// <summary>
+        /// Core pump method
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="source"></param>
+        /// <param name="destination"></param>
+        /// <param name="_options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         private async Task PumpWebSocket(HttpContext context, WebSocket source, WebSocket destination, InternalProxyOptions _options, CancellationToken cancellationToken)
         {
           
@@ -163,6 +196,16 @@ namespace NetLoadBalancer.Code.Middleware
             }
         }
 
+        /// <summary>
+        /// Handle a simple http request dumping remote content to the client
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="_options"></param>
+        /// <param name="destination"></param>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="scheme"></param>
+        /// <returns></returns>
         private async Task HandleHttpRequest(HttpContext context, InternalProxyOptions _options, Node destination, string host, int port, string scheme)
         {
          
@@ -242,6 +285,14 @@ namespace NetLoadBalancer.Code.Middleware
            
         }
 
+        /// <summary>
+        /// compute uri of remote request basing on context
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="scheme"></param>
+        /// <returns></returns>
         private static string GetUri(HttpContext context, string host, int? port, string scheme)
         {
             var urlPort = "";
@@ -255,6 +306,11 @@ namespace NetLoadBalancer.Code.Middleware
             return $"{scheme}://{host}{urlPort}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
         }
 
+        /// <summary>
+        /// Tell to terminate the pipeline
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <returns></returns>
         public override bool Terminate(HttpContext httpContext)
         {
             return true;
