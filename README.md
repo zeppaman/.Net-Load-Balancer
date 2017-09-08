@@ -19,23 +19,23 @@ Each module is configurable by a dedicated config file.
 
 
 ## Where I can Download it?
-Atm there aren't any relase. This beacause I'm still working on it, please be patient. You cannot download a relese package but you can clone and compile. Please open a issue or contact me to tell me that this prject may be useful and you will need. This will make me work harder ;-)
+At the moment, there aren't any release available. This is beacause I'm still working on it, please be patient. You cannot download a release package but you can clone and compile. Please open an issue or contact me to let me know if this project may be useful and of use for you. This will make me work harder ;-)
 
 ## Contibute
-If intersted, plese contact me or open an issues. 
+If interested, please contact me or open an issue. 
 
 # How .Net Load Balancer works
 
-Please se the full documentation into the [wiki page](https://github.com/zeppaman/.Net-Load-Balancer/wiki).
+Please see the full documentation at [wiki page](https://github.com/zeppaman/.Net-Load-Balancer/wiki).
 
 ## Filters
-This module provide an easy way to filter request based on some rules. All request that math the filter will be dropped. Each url is tested over a set of **rule**. If the url match the rule the request will be dropped. Only one match determine the rule activations so, basically, all rules are "OR" conditions by default. Each rule can test a set of request parameters (url, agent, headers). Inside the single rule all condition must be true to activate the rule. This means we are working with something like this ( CONDITION A AND CONDITION B) OR (CONDITION C) and this will support most cases.
+This module provide an easy way to filter request based on some rules. All request that match the filter will be dropped. Each url is tested over a set of **rule**. If the url matches the rule then the request will be dropped. Only one match determine the rule activations so, basically, all rules are "OR" conditions by default. Each rule can test a set of request parameters (url, agent, headers). Inside a single rule, all condition must be true to activate it. This means that we are working with something like this ( CONDITION A AND CONDITION B) OR (CONDITION C) and this will support most cases.
 
 ## Chaching
-Using standard .NET Core caching module we can provide cache support for url, defining policy. Caching has many option that are basically a wrap of original module, so you ca referr [here](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/middleware?tabs=aspnetcore2x) to get details.
+By using standard .NET Core caching module we can provide cache support for url, defining policy, etc. Caching has many options that are basically a wrap of the original module, so you ca referr to [here](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/middleware?tabs=aspnetcore2x) for more details.
 
 ## Rewrite
-This stage will allow static rewrite rule. This is oftne demanded to the application but can be implemented here to simplify server part or to map virtual urls over many different application. This is mostly a way to couple external url with internal one in case there isnt' a way to change balanced application. Balancer itself will balance the output of this transformation.
+This stage will allow static rewrite rule. This is often demanded to the application but can be implemented here to simplify server part or to map virtual urls over many different applications. This is mostly a way to couple external url with internal one in case there isnt' a way to change balanced applications. Balancer itself will balance the output of this transformation.
 
 
 ## Balancig 
@@ -47,10 +47,10 @@ This is the core module that define, for each url wath will be the destination. 
   4. Affiliation (Based on Cookie)
 
 ## Proxy
-After Balanging stage complete the computation of right url, proxy module will invoke the request repling the client.
+After Balancing stage complete the computation of right url, proxy module will invoke the request repling the client.
 
 ## Transformation
-Basing on rules, similar to filters, you can define some regular expression to alter content. In that way you can replace absolute urls with the proxy one, or change local url with cdn ones.
+Based on rules, similar to filters, you can define some regular expression to alter content. In that way you can replace absolute urls with the proxy one, or change local url with cdn ones.
 
 
 # How to use
